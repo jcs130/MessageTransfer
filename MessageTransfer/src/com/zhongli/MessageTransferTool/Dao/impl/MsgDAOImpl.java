@@ -44,9 +44,10 @@ public class MsgDAOImpl implements MsgDAO {
 		// rule.append("geo", new BasicDBObject("$ne", true));
 		rule.append("import", new BasicDBObject("$ne", true));
 		rule.append("text", new BasicDBObject("$ne", null));
+		rule.append("in_reply_to_status_id_str", new BasicDBObject("$ne", null));
 		BasicDBObject items = new BasicDBObject();
 		items.append("_id", 1);
-		items.append("import", 1);
+		items.append("in_reply_to_status_id_str", 1);
 		items.append("created_at", 1);
 		items.append("id_str", 1);
 		items.append("timestamp_ms", 1);
@@ -87,11 +88,16 @@ public class MsgDAOImpl implements MsgDAO {
 			}
 			// 时间戳
 			m.setTimestamp_ms(Long.parseLong(cur.getString("timestamp_ms")));
+			// 取得回复对象
+			if (cur.getString("in_reply_to_status_id_str") != null) {
+				m.setReplay_to(cur.getString("in_reply_to_status_id_str"));
+			}
 			// 内容
 			m.setText(cur.getString("text"));
 			// 转发
 			if (cur.getString("in_reply_to_status_id_str") != null) {
-				m.setReplay_to("in_reply_to_status_id_str");
+				m.setReplay_to(cur.getString("in_reply_to_status_id_str"));
+				// System.out.println("\n\n\n\n"+m.getReplay_to());
 			}
 			// 坐标
 			tmp = (Document) cur.get("geo");
@@ -133,9 +139,11 @@ public class MsgDAOImpl implements MsgDAO {
 						m.setPlaceCoordinates(new ArrayList<Double[]>());
 					}
 					m.getPlaceCoordinates().addAll(
-							(ArrayList<Double[]>) bounding_box.get("coordinates"));
+							(ArrayList<Double[]>) bounding_box
+									.get("coordinates"));
 				}
 			}
+
 			// 实体
 			tmp = (Document) cur.get("entities");
 			if (tmp != null) {
@@ -221,8 +229,7 @@ public class MsgDAOImpl implements MsgDAO {
 				PreparedStatement ps = conn.prepareStatement(sqlString);
 				ps.setString(1, msg.getRaw_id_str());
 				ps.setString(2, sdf.format(msg.getCreat_at()));
-				ps.setTimestamp(3, Timestamp.from(Instant.ofEpochMilli(msg
-						.getTimestamp_ms())));
+				ps.setLong(3, msg.getTimestamp_ms());
 				ps.setString(4, msg.getText());
 				ps.setString(5, msg.getMedia_type().toString());
 				ps.setString(6, msg.getMedia_urls().toString());
