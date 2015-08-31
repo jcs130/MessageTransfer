@@ -2,7 +2,6 @@ package com.zhongli.MessageTransferTool.Model;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -35,11 +34,16 @@ public class SQLmessage {
 	// 媒体地址
 	private List<String> media_urls = new ArrayList<String>();
 	// 国家，省，城市，坐标区域等
+	private String placeType = "null";
+	private String placeName = "null";
+	private String placeFullName = "null";
+	private String placeBoundingType = "null";
+	private List<Double[]> placeCoordinates = new ArrayList<Double[]>();
 	private String country = "null";
 	private String province = "null";
 	private String city = "null";
 	private String geo_type = "null";
-	private List<Double> geo_coordinates = new ArrayList<Double>();
+	private List<Double[]> geo_coordinates = new ArrayList<Double[]>();
 	// HT标签
 	private List<String> hashtags = new ArrayList<String>();
 	// 转发的消息的原编号
@@ -265,12 +269,36 @@ public class SQLmessage {
 		this.geo_type = geo_type;
 	}
 
-	public List<Double> getGeo_coordinates() {
+	public List<Double[]> getGeo_coordinates() {
 		return geo_coordinates;
 	}
 
-	public void setGeo_coordinates(List<Double> geo_coordinates) {
+	public void setGeo_coordinates(List<Double[]> geo_coordinates) {
 		this.geo_coordinates = geo_coordinates;
+	}
+
+	public String getPlaceType() {
+		return placeType;
+	}
+
+	public void setPlaceType(String placeType) {
+		this.placeType = placeType;
+	}
+
+	public String getPlaceName() {
+		return placeName;
+	}
+
+	public void setPlaceName(String placeName) {
+		this.placeName = placeName;
+	}
+
+	public String getPlaceFullName() {
+		return placeFullName;
+	}
+
+	public void setPlaceFullName(String placeFullName) {
+		this.placeFullName = placeFullName;
 	}
 
 	@Override
@@ -279,11 +307,14 @@ public class SQLmessage {
 				+ ", raw_id_str=" + raw_id_str + ", creat_at="
 				+ sdf.format(creat_at) + ", timestamp_ms=" + timestamp_ms
 				+ ", text=" + text + ", media_type=" + media_type
-				+ ", media_urls=" + media_urls + ", country=" + country
-				+ ", province=" + province + ", city=" + city + ", geo_type="
-				+ geo_type + ", geo_coordinates=" + geo_coordinates
-				+ ", hashtags=" + hashtags + ", replay_to=" + replay_to
-				+ ", lang=" + lang + ", emotion_text_human="
+				+ ", media_urls=" + media_urls + ", placeType=" + placeType
+				+ ", placeName=" + placeName + ", placeFullName="
+				+ placeFullName + ", placeBoundingType=" + placeBoundingType
+				+ ", placeCoordinates=" + placeCoordinates + ", country="
+				+ country + ", province=" + province + ", city=" + city
+				+ ", geo_type=" + geo_type + ", geo_coordinates="
+				+ geo_coordinates + ", hashtags=" + hashtags + ", replay_to="
+				+ replay_to + ", lang=" + lang + ", emotion_text_human="
 				+ emotion_text_human + ", emotion_text_human_times="
 				+ emotion_text_human_times + ", emotion_text_human_confidence="
 				+ emotion_text_human_confidence + ", emotion_media_human="
@@ -293,6 +324,22 @@ public class SQLmessage {
 				+ emotion_media_human_confidence + ", emotion_text_machine="
 				+ emotion_text_machine + ", emotion_media_machine="
 				+ emotion_media_machine + ", messageFrom=" + messageFrom + "]";
+	}
+
+	public List<Double[]> getPlaceCoordinates() {
+		return placeCoordinates;
+	}
+
+	public void setPlaceCoordinates(List<Double[]> placeCoordinates) {
+		this.placeCoordinates = placeCoordinates;
+	}
+
+	public String getPlaceBoundingType() {
+		return placeBoundingType;
+	}
+
+	public void setPlaceBoundingType(String placeBoundingType) {
+		this.placeBoundingType = placeBoundingType;
 	}
 
 }

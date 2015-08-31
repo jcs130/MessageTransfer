@@ -99,17 +99,20 @@ public class MsgDAOImpl implements MsgDAO {
 				// 如果有具体坐标存储具体坐标
 				m.setGeo_type(tmp.getString("type"));
 				if (m.getGeo_coordinates() == null) {
-					m.setGeo_coordinates(new ArrayList<Double>());
+					m.setGeo_coordinates(new ArrayList<Double[]>());
 				}
 				m.getGeo_coordinates().addAll(
-						(ArrayList<Double>) tmp.get("coordinates"));
+						(ArrayList<Double[]>) tmp.get("coordinates"));
 			}
 			// 地点
 			tmp = (Document) cur.get("place");
 			if (tmp != null) {
 				String place_type = tmp.getString("place_type");
+				m.setPlaceType(place_type);
 				String name = tmp.getString("name");
+				m.setPlaceName(name);
 				String full_name = tmp.getString("full_name");
+				m.setPlaceFullName(full_name);
 				String country = tmp.getString("country");
 				// 根据type来生成不同的值
 				if (place_type.equals("city")) {
@@ -119,10 +122,18 @@ public class MsgDAOImpl implements MsgDAO {
 				} else if (place_type.equals("admin")) {
 					m.setProvince(name);
 					m.setCountry(country);
-				} else if (place_type.equals("country")) {
-					m.setCountry(country);
 				} else {
-					System.out.println("new place type:" + place_type);
+					m.setCountry(country);
+				}
+				// 存储边界信息
+				Document bounding_box = (Document) tmp.get("bounding_box");
+				if (bounding_box != null) {
+					m.setPlaceBoundingType(bounding_box.getString("type"));
+					if (m.getPlaceCoordinates() == null) {
+						m.setPlaceCoordinates(new ArrayList<Double[]>());
+					}
+					m.getPlaceCoordinates().addAll(
+							(ArrayList<Double[]>) bounding_box.get("coordinates"));
 				}
 			}
 			// 实体
@@ -192,6 +203,7 @@ public class MsgDAOImpl implements MsgDAO {
 			}
 			// 语言
 			m.setLang(cur.getString("lang"));
+			m.setMessageFrom("twitter");
 			System.out.println(m);
 			res.add(m);
 		}
@@ -200,7 +212,7 @@ public class MsgDAOImpl implements MsgDAO {
 
 	@Override
 	public void saveSQLMsg(List<SQLmessage> sqLmessages) {
-		String sqlString = "INSERT INTO savedmessages (raw_id_str, creat_at, timestamp_ms, text, media_type, media_urls, country, province, city, geo_type, geo_coordinates, hashtags, replay_to, lang,mongoid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
+		String sqlString = "INSERT INTO savedmessages (raw_id_str, creat_at, timestamp_ms, text, media_type, media_urls, country, province, city, geo_type, geo_coordinates, hashtags, replay_to, lang,mongoid,placetype,placename,placefullname,placeboundingtype,placecoordinates,messageFrom) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?)";
 		Connection conn = null;
 		try {
 			conn = mySQL.getConnection();
@@ -223,6 +235,13 @@ public class MsgDAOImpl implements MsgDAO {
 				ps.setString(13, msg.getReplay_to());
 				ps.setString(14, msg.getLang());
 				ps.setString(15, msg.getMongoId().toString());
+				ps.setString(16, msg.getPlaceType());
+				ps.setString(17, msg.getPlaceName());
+				ps.setString(18, msg.getPlaceFullName());
+				ps.setString(19, msg.getPlaceBoundingType());
+				ps.setString(20, msg.getPlaceCoordinates().toString());
+				ps.setString(21, msg.getMessageFrom());
+				System.out.println(msg.getPlaceFullName());
 				try {
 					ps.executeUpdate();
 				} catch (Exception e) {
@@ -244,8 +263,10 @@ public class MsgDAOImpl implements MsgDAO {
 		rule.append("_id", _id);
 		BasicDBObject value = new BasicDBObject();
 		value.append("$set", new BasicDBObject("import", true));
-		UpdateResult updateResult=mongoDB.getCollection().updateOne(rule, value);
-		System.out.println("更新原始数据库的值:找到了"+updateResult.getMatchedCount()+"修改了："+updateResult.getModifiedCount());
+		UpdateResult updateResult = mongoDB.getCollection().updateOne(rule,
+				value);
+		System.out.println("更新原始数据库的值:找到了" + updateResult.getMatchedCount()
+				+ "修改了：" + updateResult.getModifiedCount());
 	}
 
 	@Override
