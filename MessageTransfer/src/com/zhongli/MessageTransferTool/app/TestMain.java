@@ -1,6 +1,9 @@
 package com.zhongli.MessageTransferTool.app;
 
+import java.util.List;
+
 import com.zhongli.MessageTransferTool.Dao.impl.MsgDAOImpl;
+import com.zhongli.MessageTransferTool.Model.SQLmessage;
 
 public class TestMain {
 	public static void main(String[] args) {
@@ -10,7 +13,8 @@ public class TestMain {
 
 	private void testDo() {
 		MsgDAOImpl msgDao = new MsgDAOImpl();
-		msgDao.getNewRawMsg(2);
+		List<SQLmessage> li=msgDao.getNewRawMsg(10000);
+		msgDao.saveSQLMsg(li);
 	}
 
 }

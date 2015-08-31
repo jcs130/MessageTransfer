@@ -1,6 +1,7 @@
 package com.zhongli.MessageTransferTool.Model;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -30,31 +31,31 @@ public class SQLmessage {
 	// 消息内容
 	private String text;
 	// 媒体类型
-	private String media_type;
+	private List<String> media_type = new ArrayList<String>();
 	// 媒体地址
-	private List<String> urls;
+	private List<String> media_urls = new ArrayList<String>();
 	// 国家，省，城市，坐标区域等
-	private String country;
-	private String province;
-	private String city;
-	private String geo_type;
-	private List<Double> geo_coordinates;
+	private String country = "null";
+	private String province = "null";
+	private String city = "null";
+	private String geo_type = "null";
+	private List<Double> geo_coordinates = new ArrayList<Double>();
 	// HT标签
-	private List<String> hashtags;
+	private List<String> hashtags = new ArrayList<String>();
 	// 转发的消息的原编号
-	private String replay_to;
+	private String replay_to = "null";
 	// 语言
-	private String lang;
+	private String lang = "null";
 	// 文字人工标记情感
-	private String emotion_text_human;
+	private String emotion_text_human = "null";
 	// 文字人工标记次数
-	private String emotion_text_human_times;
+	private int emotion_text_human_times;
 	// 文字人工标记可信度
 	private double emotion_text_human_confidence;
 	// 媒体人工标记情感
 	private List<String> emotion_media_human;
 	// 媒体人工标记次数
-	private String emotion_media_human_times;
+	private int emotion_media_human_times;
 	// 媒体人工标记可信度
 	private List<Double> emotion_media_human_confidence;
 	// 文字机器标记情感
@@ -110,20 +111,20 @@ public class SQLmessage {
 		this.text = text;
 	}
 
-	public String getMedia_type() {
+	public List<String> getMedia_type() {
 		return media_type;
 	}
 
-	public void setMedia_type(String media_type) {
+	public void setMedia_type(List<String> media_type) {
 		this.media_type = media_type;
 	}
 
-	public List<String> getUrls() {
-		return urls;
+	public List<String> getMedia_urls() {
+		return media_urls;
 	}
 
-	public void setUrls(List<String> urls) {
-		this.urls = urls;
+	public void setMedia_urls(List<String> media_urls) {
+		this.media_urls = media_urls;
 	}
 
 	public String getCountry() {
@@ -182,11 +183,11 @@ public class SQLmessage {
 		this.emotion_text_human = emotion_text_human;
 	}
 
-	public String getEmotion_text_human_times() {
+	public int getEmotion_text_human_times() {
 		return emotion_text_human_times;
 	}
 
-	public void setEmotion_text_human_times(String emotion_text_human_times) {
+	public void setEmotion_text_human_times(int emotion_text_human_times) {
 		this.emotion_text_human_times = emotion_text_human_times;
 	}
 
@@ -207,11 +208,11 @@ public class SQLmessage {
 		this.emotion_media_human = emotion_media_human;
 	}
 
-	public String getEmotion_media_human_times() {
+	public int getEmotion_media_human_times() {
 		return emotion_media_human_times;
 	}
 
-	public void setEmotion_media_human_times(String emotion_media_human_times) {
+	public void setEmotion_media_human_times(int emotion_media_human_times) {
 		this.emotion_media_human_times = emotion_media_human_times;
 	}
 
@@ -277,14 +278,14 @@ public class SQLmessage {
 		return "SQLmessage [num_id=" + num_id + ", MongoId=" + MongoId
 				+ ", raw_id_str=" + raw_id_str + ", creat_at="
 				+ sdf.format(creat_at) + ", timestamp_ms=" + timestamp_ms
-				+ ", text=" + text + ", media_type=" + media_type + ", urls="
-				+ urls + ", country=" + country + ", province=" + province
-				+ ", city=" + city + ", geo_type=" + geo_type
-				+ ", geo_coordinates=" + geo_coordinates + ", hashtags="
-				+ hashtags + ", replay_to=" + replay_to + ", lang=" + lang
-				+ ", emotion_text_human=" + emotion_text_human
-				+ ", emotion_text_human_times=" + emotion_text_human_times
-				+ ", emotion_text_human_confidence="
+				+ ", text=" + text + ", media_type=" + media_type
+				+ ", media_urls=" + media_urls + ", country=" + country
+				+ ", province=" + province + ", city=" + city + ", geo_type="
+				+ geo_type + ", geo_coordinates=" + geo_coordinates
+				+ ", hashtags=" + hashtags + ", replay_to=" + replay_to
+				+ ", lang=" + lang + ", emotion_text_human="
+				+ emotion_text_human + ", emotion_text_human_times="
+				+ emotion_text_human_times + ", emotion_text_human_confidence="
 				+ emotion_text_human_confidence + ", emotion_media_human="
 				+ emotion_media_human + ", emotion_media_human_times="
 				+ emotion_media_human_times

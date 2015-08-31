@@ -1,41 +1,76 @@
 package com.zhongli.MessageTransferTool.Dao.impl;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
 import org.bson.Document;
+import org.bson.types.ObjectId;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.client.result.UpdateResult;
 import com.zhongli.MessageTransferTool.Dao.MsgDAO;
 import com.zhongli.MessageTransferTool.Model.SQLmessage;
 
 public class MsgDAOImpl implements MsgDAO {
 	private MongoDBHelper mongoDB;
 	private MySQLHelper mySQL;
+	private SimpleDateFormat sdf;
 
 	public MsgDAOImpl() {
 		mongoDB = new MongoDBHelper("localhost", 27017, "happycityproject",
 				"rawTwitters");
 		mySQL = new MySQLHelper();
+		sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy", Locale.US);
+		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 	}
 
+	@SuppressWarnings({ "unchecked" })
 	@Override
 	public List<SQLmessage> getNewRawMsg(int limit) {
+		HashSet<String> ids = new HashSet<String>();
 		Document tmp;
 		// 创建筛选规则
 		BasicDBObject rule = new BasicDBObject();
-		rule.append("geo", new BasicDBObject("$ne", true));
+		// rule.append("geo", new BasicDBObject("$ne", true));
 		rule.append("import", new BasicDBObject("$ne", true));
+		rule.append("text", new BasicDBObject("$ne", null));
+		BasicDBObject items = new BasicDBObject();
+		items.append("_id", 1);
+		items.append("import", 1);
+		items.append("created_at", 1);
+		items.append("id_str", 1);
+		items.append("timestamp_ms", 1);
+		items.append("text", 1);
+		items.append("geo", 1);
+		items.append("place", 1);
+		items.append("entities", 1);
+		items.append("extended_entities", 1);
+		items.append("lang", 1);
+		items.append("import", 1);
 		ArrayList<SQLmessage> res = new ArrayList<SQLmessage>();
 		// 对时间进行排序
 		for (Document cur : mongoDB.getCollection().find(rule)
-				.sort(new BasicDBObject("created_at", 1)).limit(limit)) {
+				.projection(items).sort(new BasicDBObject("created_at", 1))
+				.limit(limit)) {
 			System.out.println(cur.toJson());
+			// 查重，如果id重复则跳过
+			if (ids.contains(cur.getString("id_str"))) {
+				System.out.println("ID重复，跳过此条");
+				// 从mongoDB中删除
+				deleteRawMessage(cur.getObjectId("_id"));
+				continue;
+			}
+			ids.add(cur.getString("id_str"));
 			// 提取需要的信息组成对象
 			SQLmessage m = new SQLmessage();
 			m.setMongoId(cur.getObjectId("_id"));
@@ -43,7 +78,7 @@ public class MsgDAOImpl implements MsgDAO {
 			// GMT 时间
 			SimpleDateFormat sdf = new SimpleDateFormat(
 					"EEE MMM dd HH:mm:ss Z yyyy", Locale.US);
-			
+
 			try {
 				m.setCreat_at(sdf.parse(cur.getString("created_at")));
 			} catch (ParseException e) {
@@ -78,7 +113,7 @@ public class MsgDAOImpl implements MsgDAO {
 				String country = tmp.getString("country");
 				// 根据type来生成不同的值
 				if (place_type.equals("city")) {
-					m.setCity("name");
+					m.setCity(name);
 					m.setProvince(full_name.split(",")[1].trim());
 					m.setCountry(country);
 				} else if (place_type.equals("admin")) {
@@ -94,16 +129,69 @@ public class MsgDAOImpl implements MsgDAO {
 			tmp = (Document) cur.get("entities");
 			if (tmp != null) {
 				// hashtags
-				ArrayList<Document> hashtags =  (ArrayList<Document>) tmp.get("hashtags");
-				for (int i = 0; i < hashtags.size(); i++) {
-					Document ht = (Document) hashtags.get(i);
-					if (m.getHashtags() == null) {
-						m.setHashtags(new ArrayList<String>());
+				ArrayList<Document> hashtags = (ArrayList<Document>) tmp
+						.get("hashtags");
+				if (hashtags != null) {
+					for (int i = 0; i < hashtags.size(); i++) {
+						Document ht = (Document) hashtags.get(i);
+						if (m.getHashtags() == null) {
+							m.setHashtags(new ArrayList<String>());
+						}
+						m.getHashtags().add(ht.getString("text"));
 					}
-					m.getHashtags().add(ht.getString("text"));
+				}
+				// media
+				ArrayList<Document> medias = (ArrayList<Document>) tmp
+						.get("media");
+				if (medias != null) {
+					for (int i = 0; i < medias.size(); i++) {
+						Document media = (Document) medias.get(i);
+						if (m.getMedia_urls() == null) {
+							m.setMedia_urls(new ArrayList<String>());
+						}
+						if (m.getMedia_type() == null) {
+							m.setMedia_type(new ArrayList<String>());
+						}
+						m.getMedia_urls().add(media.getString("media_url"));
+						m.getMedia_type().add(media.getString("type"));
+					}
 				}
 
 			}
+			// 扩展实体
+			tmp = (Document) cur.get("extended_entities");
+			if (tmp != null) {
+				// hashtags
+				ArrayList<Document> hashtags = (ArrayList<Document>) tmp
+						.get("hashtags");
+				if (hashtags != null) {
+					for (int i = 0; i < hashtags.size(); i++) {
+						Document ht = (Document) hashtags.get(i);
+						if (m.getHashtags() == null) {
+							m.setHashtags(new ArrayList<String>());
+						}
+						m.getHashtags().add(ht.getString("text"));
+					}
+				}
+				// media
+				ArrayList<Document> medias = (ArrayList<Document>) tmp
+						.get("media");
+				if (medias != null) {
+					for (int i = 0; i < medias.size(); i++) {
+						Document media = (Document) medias.get(i);
+						if (m.getMedia_urls() == null) {
+							m.setMedia_urls(new ArrayList<String>());
+						}
+						if (m.getMedia_type() == null) {
+							m.setMedia_type(new ArrayList<String>());
+						}
+						m.getMedia_urls().add(media.getString("media_url"));
+						m.getMedia_type().add(media.getString("type"));
+					}
+				}
+			}
+			// 语言
+			m.setLang(cur.getString("lang"));
 			System.out.println(m);
 			res.add(m);
 		}
@@ -112,8 +200,60 @@ public class MsgDAOImpl implements MsgDAO {
 
 	@Override
 	public void saveSQLMsg(List<SQLmessage> sqLmessages) {
-		// TODO Auto-generated method stub
+		String sqlString = "INSERT INTO savedmessages (raw_id_str, creat_at, timestamp_ms, text, media_type, media_urls, country, province, city, geo_type, geo_coordinates, hashtags, replay_to, lang,mongoid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
+		Connection conn = null;
+		try {
+			conn = mySQL.getConnection();
+			for (int i = 0; i < sqLmessages.size(); i++) {
+				SQLmessage msg = sqLmessages.get(i);
+				PreparedStatement ps = conn.prepareStatement(sqlString);
+				ps.setString(1, msg.getRaw_id_str());
+				ps.setString(2, sdf.format(msg.getCreat_at()));
+				ps.setTimestamp(3, Timestamp.from(Instant.ofEpochMilli(msg
+						.getTimestamp_ms())));
+				ps.setString(4, msg.getText());
+				ps.setString(5, msg.getMedia_type().toString());
+				ps.setString(6, msg.getMedia_urls().toString());
+				ps.setString(7, msg.getCountry());
+				ps.setString(8, msg.getProvince());
+				ps.setString(9, msg.getCity());
+				ps.setString(10, msg.getGeo_type());
+				ps.setString(11, msg.getGeo_coordinates().toString());
+				ps.setString(12, msg.getHashtags().toString());
+				ps.setString(13, msg.getReplay_to());
+				ps.setString(14, msg.getLang());
+				ps.setString(15, msg.getMongoId().toString());
+				try {
+					ps.executeUpdate();
+				} catch (Exception e) {
+					e.printStackTrace();
+					updateState_import(msg.getMongoId(), true);
+				}
+				updateState_import(msg.getMongoId(), true);
+				ps.close();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
 
+		}
+	}
+
+	@Override
+	public void updateState_import(ObjectId _id, boolean isImport) {
+		BasicDBObject rule = new BasicDBObject();
+		rule.append("_id", _id);
+		BasicDBObject value = new BasicDBObject();
+		value.append("$set", new BasicDBObject("import", true));
+		UpdateResult updateResult=mongoDB.getCollection().updateOne(rule, value);
+		System.out.println("更新原始数据库的值:找到了"+updateResult.getMatchedCount()+"修改了："+updateResult.getModifiedCount());
+	}
+
+	@Override
+	public void deleteRawMessage(ObjectId _id) {
+		BasicDBObject rule = new BasicDBObject();
+		rule.append("_id", _id);
+		mongoDB.getCollection().deleteOne(rule);
+		System.out.println("删除重复的值");
 	}
 
 }
