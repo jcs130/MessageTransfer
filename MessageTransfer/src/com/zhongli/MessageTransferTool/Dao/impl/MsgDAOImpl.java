@@ -3,10 +3,8 @@ package com.zhongli.MessageTransferTool.Dao.impl;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -44,7 +42,8 @@ public class MsgDAOImpl implements MsgDAO {
 		// rule.append("geo", new BasicDBObject("$ne", true));
 		rule.append("import", new BasicDBObject("$ne", true));
 		rule.append("text", new BasicDBObject("$ne", null));
-		rule.append("in_reply_to_status_id_str", new BasicDBObject("$ne", null));
+		// rule.append("in_reply_to_status_id_str", new BasicDBObject("$ne",
+		// null));
 		BasicDBObject items = new BasicDBObject();
 		items.append("_id", 1);
 		items.append("in_reply_to_status_id_str", 1);
@@ -171,8 +170,11 @@ public class MsgDAOImpl implements MsgDAO {
 						if (m.getMedia_type() == null) {
 							m.setMedia_type(new ArrayList<String>());
 						}
-						m.getMedia_urls().add(media.getString("media_url"));
-						m.getMedia_type().add(media.getString("type"));
+						if (!m.getMedia_urls().contains(
+								media.getString("media_url"))) {
+							m.getMedia_urls().add(media.getString("media_url"));
+							m.getMedia_type().add(media.getString("type"));
+						}
 					}
 				}
 
@@ -204,8 +206,47 @@ public class MsgDAOImpl implements MsgDAO {
 						if (m.getMedia_type() == null) {
 							m.setMedia_type(new ArrayList<String>());
 						}
-						m.getMedia_urls().add(media.getString("media_url"));
-						m.getMedia_type().add(media.getString("type"));
+						// 获得媒体类型
+						String mediaType = media.getString("type");
+						// 如果和以前的重复则跳过
+						if (m.getMedia_urls().contains(
+								media.getString("media_url"))
+								&& mediaType.equals("photo")) {
+							continue;
+						}
+						m.getMedia_type().add(mediaType);
+						if (mediaType.equals("photo")) {
+							m.getMedia_urls().add(media.getString("media_url"));
+						} else {
+							Document video_info = (Document) media
+									.get("video_info");
+							if (video_info != null) {
+								// 提取视频连接
+								ArrayList<Document> variants = (ArrayList<Document>) video_info
+										.get("variants");
+								int maxBitrateIndex = 0;
+								int maxBitrate = 0;
+								for (int j = 0; j < variants.size(); j++) {
+									// 获取bitrate最高的并且格式为mp4的视频的url
+									String content_type = variants.get(j)
+											.getString("content_type");
+									System.out.println("content_type"
+											+ content_type);
+									if (content_type.equals("video/mp4")) {
+										int bitrate = variants.get(j)
+												.getInteger("bitrate");
+										if (bitrate > maxBitrate) {
+											maxBitrateIndex = j;
+										}
+									}
+								}
+								// 将bitrate最大的MP4格式了url保存
+								m.getMedia_urls().add(
+										variants.get(maxBitrateIndex)
+												.getString("url"));
+
+							}
+						}
 					}
 				}
 			}
