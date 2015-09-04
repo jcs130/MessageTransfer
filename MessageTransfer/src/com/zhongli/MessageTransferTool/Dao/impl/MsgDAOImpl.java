@@ -17,24 +17,24 @@ import org.bson.types.ObjectId;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.result.UpdateResult;
 import com.zhongli.MessageTransferTool.Dao.MsgDAO;
-import com.zhongli.MessageTransferTool.Model.SQLmessage;
+import com.zhongli.MessageTransferTool.Model.FullMessage;
 
 public class MsgDAOImpl implements MsgDAO {
 	private MongoDBHelper mongoDB;
-	private MySQLHelper mySQL;
+	private MySQLHelper_Full mySQL;
 	private SimpleDateFormat sdf;
 
 	public MsgDAOImpl() {
 		mongoDB = new MongoDBHelper("localhost", 27017, "happycityproject",
 				"rawTwitters");
-		mySQL = new MySQLHelper();
+		mySQL = new MySQLHelper_Full();
 		sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy", Locale.US);
 		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 	}
 
 	@SuppressWarnings({ "unchecked" })
 	@Override
-	public List<SQLmessage> getNewRawMsg(int limit) {
+	public List<FullMessage> getNewRawMsg(int limit) {
 		HashSet<String> ids = new HashSet<String>();
 		Document tmp;
 		// 创建筛选规则
@@ -57,7 +57,7 @@ public class MsgDAOImpl implements MsgDAO {
 		items.append("extended_entities", 1);
 		items.append("lang", 1);
 		items.append("import", 1);
-		ArrayList<SQLmessage> res = new ArrayList<SQLmessage>();
+		ArrayList<FullMessage> res = new ArrayList<FullMessage>();
 		// 对时间进行排序
 		for (Document cur : mongoDB.getCollection().find(rule)
 				.projection(items).sort(new BasicDBObject("created_at", 1))
@@ -72,7 +72,7 @@ public class MsgDAOImpl implements MsgDAO {
 			}
 			ids.add(cur.getString("id_str"));
 			// 提取需要的信息组成对象
-			SQLmessage m = new SQLmessage();
+			FullMessage m = new FullMessage();
 			m.setMongoId(cur.getObjectId("_id"));
 			m.setRaw_id_str(cur.getString("id_str"));
 			// GMT 时间
@@ -260,13 +260,13 @@ public class MsgDAOImpl implements MsgDAO {
 	}
 
 	@Override
-	public void saveSQLMsg(List<SQLmessage> sqLmessages) {
+	public void saveSQLMsg(List<FullMessage> sqLmessages) {
 		String sqlString = "INSERT INTO savedmessages (raw_id_str, creat_at, timestamp_ms, text, media_type, media_urls, country, province, city, geo_type, geo_coordinates, hashtags, replay_to, lang,mongoid,placetype,placename,placefullname,placeboundingtype,placecoordinates,messageFrom) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?)";
 		Connection conn = null;
 		try {
 			conn = mySQL.getConnection();
 			for (int i = 0; i < sqLmessages.size(); i++) {
-				SQLmessage msg = sqLmessages.get(i);
+				FullMessage msg = sqLmessages.get(i);
 				PreparedStatement ps = conn.prepareStatement(sqlString);
 				ps.setString(1, msg.getRaw_id_str());
 				ps.setString(2, sdf.format(msg.getCreat_at()));

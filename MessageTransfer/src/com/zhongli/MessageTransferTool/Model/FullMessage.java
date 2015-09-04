@@ -15,9 +15,9 @@ import org.bson.types.ObjectId;
  * @author zhonglili
  *
  */
-public class SQLmessage {
+public class FullMessage {
 	// 主键
-	private int num_id;
+	private long num_id;
 	// 消息在缓存数据库中的ID
 	private ObjectId MongoId;
 	// 消息原来的编号
@@ -69,13 +69,13 @@ public class SQLmessage {
 	// 来源
 	private String messageFrom;
 
-	public SQLmessage() {
+	public FullMessage() {
 		super();
 		sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy", Locale.US);
 		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 	}
 
-	public int getNum_id() {
+	public long getNum_id() {
 		return num_id;
 	}
 
