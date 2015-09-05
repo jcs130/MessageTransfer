@@ -32,18 +32,19 @@ public class FromFullDB2MarkDB {
 	 */
 	private void testDo() {
 		MsgDAOImpl msgDao = new MsgDAOImpl();
-		int limit = 1000;
+		int limit = 10;
 		ArrayList<String> hashtags = new ArrayList<String>();
-		hashtags.add("elxn");
+		// hashtags.add("elxn");
 		ArrayList<String> keywords = new ArrayList<String>();
-		keywords.add("elxn");
-		String queryOption = " and lang='en' and media_type !='[photo]' "
+		// keywords.add("elxn");
+		String queryOption = " and lang='en' and media_types ='[photo, video]' "
 				+ addKeyWordRule(keywords, true)
 				+ addHashTagsRule(hashtags, true);
+		String baseDir = "/Users/zhonglili/Documents/medias/";
 		// 从完整数据库中按一定条件读取数据
 		// 将获得的数据进行进一步的筛选，检测图片是否存在等等
 		ArrayList<MarkMessage> filiteredMarkMessages = checkMarkMessages(
-				msgDao.getNewMarkMessage(limit, queryOption), msgDao);
+				msgDao.getNewMarkMessage(limit, queryOption), msgDao, baseDir);
 		// 将筛选后的数据存入标记数据库
 		msgDao.saveSQLMsg_Mark(filiteredMarkMessages);
 
@@ -56,17 +57,19 @@ public class FromFullDB2MarkDB {
 	 * @return
 	 */
 	private ArrayList<MarkMessage> checkMarkMessages(
-			ArrayList<MarkMessage> newMarkMessages, MsgDAO msgDao) {
+			ArrayList<MarkMessage> newMarkMessages, MsgDAO msgDao,
+			String baseDir) {
 		ArrayList<MarkMessage> res = new ArrayList<MarkMessage>();
 		MarkMessage temp;
 		for (int i = 0; i < newMarkMessages.size(); i++) {
 			temp = newMarkMessages.get(i);
 			// 解析文本消息
 			TextAndURLs tau = getTextAndURLs(temp);
+			System.out.println(tau);
 			// 首先检测除去连接之后是否还有别的信息
 			if ("".equals(tau.getText())) {
 				// 如果只有链接没有别的消息则忽略
-				System.out.println(tau.getText() + "Only ULRs, drop");
+				System.out.println(tau.getText() + "No Text Messages, drop");
 			} else {
 				// 如果有媒体则检测最后一个链接是否存在
 				if (tau.isHasMedia()) {
@@ -75,12 +78,11 @@ public class FromFullDB2MarkDB {
 						// 修改消息，将最后的链接去掉
 						String newText = tau.getText();
 						for (int j = 0; j < tau.getUrls().size() - 1; j++) {
-							newText += " " + tau.getUrls().get(i).toString();
+							newText += " " + tau.getUrls().get(j).toString();
 						}
 						temp.setText(newText);
-						String baseDir="/Users/zhonglili/Desktop";
 						// 将媒体文件存放到本地
-						if (saveMedia2Disk(temp,baseDir)) {
+						if (saveMedia2Disk(temp, baseDir)) {
 							res.add(temp);
 						} else {
 							// 更新数据库中的消息状态为del
@@ -149,11 +151,17 @@ public class FromFullDB2MarkDB {
 			// 根据不同的类型存储到不同的文件夹
 			if ("photo".equals(media_types.get(i))) {
 				saveDir += "/photos";
-			} else {
+			} else if ("video".equals(media_types.get(i))) {
 				saveDir += "/videos";
+			} else if (" animated_gif".equals(media_types.get(i))) {
+				saveDir += "/smallvideos";
+			} else {
+				saveDir += "/others";
 			}
 
 			String mediaURL = media_urls.get(i);
+			System.out.println(mediaURL);
+			myFileName = "" + temp.getFull_msg_id() + "_" + i;
 			try {
 				String savedFileName = FileDownloadUtility.downloadFile(
 						mediaURL, saveDir, myFileName);
@@ -201,8 +209,11 @@ public class FromFullDB2MarkDB {
 	 * @return
 	 */
 	private String addKeyWordRule(List<String> keywords, boolean isAnd) {
-		String res = "and ( ";
+		String res = "";
 		for (int i = 0; i < keywords.size(); i++) {
+			if (i == 0) {
+				res += "and ( ";
+			}
 			res += "text LIKE '%" + keywords.get(i) + "%'";
 			if (i != keywords.size() - 1) {
 				if (isAnd) {
@@ -211,8 +222,11 @@ public class FromFullDB2MarkDB {
 					res += " or ";
 				}
 			}
+			if (i == keywords.size() - 1) {
+				res += ")";
+			}
 		}
-		res += ")";
+
 		return res;
 	}
 
@@ -224,8 +238,11 @@ public class FromFullDB2MarkDB {
 	 * @return
 	 */
 	private String addHashTagsRule(List<String> hashtags, boolean isAnd) {
-		String res = "and ( ";
+		String res = "";
 		for (int i = 0; i < hashtags.size(); i++) {
+			if (i == 0) {
+				res += "and ( ";
+			}
 			res += "hashtags LIKE '%" + hashtags.get(i) + "%'";
 			if (i != hashtags.size() - 1) {
 				if (isAnd) {
@@ -234,8 +251,11 @@ public class FromFullDB2MarkDB {
 					res += " or ";
 				}
 			}
+			if (i == hashtags.size() - 1) {
+				res += ")";
+			}
 		}
-		res += ")";
+
 		return res;
 	}
 

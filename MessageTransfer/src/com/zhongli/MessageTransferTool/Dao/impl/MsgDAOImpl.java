@@ -32,6 +32,7 @@ public class MsgDAOImpl implements MsgDAO {
 		mongoDB = new MongoDBHelper("192.168.1.110", 27017, "happycityproject",
 				"rawTwitters");
 		mySQL_full = new MySQLHelper_Full();
+		mySQL_mark = new MySQLHelper_Mark();
 		sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy", Locale.US);
 		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 	}
@@ -490,7 +491,7 @@ public class MsgDAOImpl implements MsgDAO {
 
 	@Override
 	public void saveSQLMsg_Full(List<FullMessage> sqLmessages) {
-		String sqlString = "INSERT INTO savedfullmessages (raw_id_str, creat_at, timestamp_ms, text, media_type, media_urls, country, province, city, geo_type, geo_coordinates, hashtags, replay_to, lang,mongoid,placetype,placename,placefullname,placeboundingtype,placecoordinates,messageFrom) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?)";
+		String sqlString = "INSERT INTO savedfullmessages (raw_id_str, creat_at, timestamp_ms, text, media_types, media_urls, country, province, city, geo_type, geo_coordinates, hashtags, replay_to, lang,mongoid,placetype,placename,placefullname,placeboundingtype,placecoordinates,messageFrom) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?)";
 		Connection conn = null;
 		try {
 			conn = mySQL_full.getConnection();
@@ -559,7 +560,8 @@ public class MsgDAOImpl implements MsgDAO {
 			String queryOption) {
 		// and media_type !='[]'
 		String sqlString = "SELECT * FROM savedfullmessages where ismessageimport=false "
-				+ queryOption + "ORDER BY rand() LIMIT " + limit + ";";
+				+ queryOption + " ORDER BY rand() LIMIT " + limit + ";";
+		System.out.println(sqlString);
 		Connection conn = null;
 
 		try {
@@ -568,19 +570,18 @@ public class MsgDAOImpl implements MsgDAO {
 			ArrayList<MarkMessage> res = new ArrayList<MarkMessage>();
 			MarkMessage message;
 			ResultSet rs = ps.executeQuery();
-			if (rs.next()) {
+			while (rs.next()) {
 				message = new MarkMessage();
-				message.setMsg_id(rs.getLong("num_id"));
+				message.setFull_msg_id(rs.getLong("num_id"));
 				message.setText(rs.getString("text"));
-				ArrayList<String> types = new ArrayList<String>(
-						Arrays.asList(rs.getString("media_types")));
-				ArrayList<String> urls = new ArrayList<String>(Arrays.asList(rs
+				message.setMedia_types(getListFromString(rs
+						.getString("media_types")));
+				message.setMedia_urls(getListFromString(rs
 						.getString("media_urls")));
-				message.setMedia_types(types);
-				message.setMedia_urls(urls);
 				message.setLang(rs.getString("lang"));
 				message.setMessage_from(rs.getString("messageFrom"));
 				System.out.println(message);
+				res.add(message);
 			}
 			return res;
 		} catch (SQLException e) {
@@ -594,6 +595,24 @@ public class MsgDAOImpl implements MsgDAO {
 				}
 			}
 		}
+	}
+
+	/**
+	 * 将ArrayList的toString()之后生成的字符串转化为ArrayList
+	 * 
+	 * @param string
+	 * @return
+	 */
+	private List<String> getListFromString(String listString) {
+		// 去掉首尾的中括号
+		String[] temp = listString.substring(1, listString.length() - 1).split(
+				", ");
+		ArrayList<String> res = new ArrayList<String>();
+		for (int i = 0; i < temp.length; i++) {
+			res.add(temp[i]);
+		}
+
+		return res;
 	}
 
 	@Override
@@ -637,8 +656,8 @@ public class MsgDAOImpl implements MsgDAO {
 	@Override
 	public void updateState_Full(long fullMsgID, String state) {
 		Connection conn = null;
-		String sqlString = "UPDATE savedfullmessages SET ismessageimport="
-				+ state + " WHERE num_id=" + fullMsgID;
+		String sqlString = "UPDATE savedfullmessages SET ismessageimport='"
+				+ state + "' WHERE num_id=" + fullMsgID;
 		try {
 			conn = mySQL_full.getConnection();
 			PreparedStatement ps = conn.prepareStatement(sqlString);

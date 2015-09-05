@@ -51,9 +51,9 @@ public class FileDownloadUtility {
 			}
 			// If given a filename
 			if (!"".equals(myFilename)) {
-				String[] filenamesubs = fileName.split(".");
-				String fileType = filenamesubs[filenamesubs.length - 1];
-				fileName = myFilename + "." + fileType;
+				String fileType = fileName.substring(fileName.lastIndexOf('.'));
+				System.out.println(fileType);
+				fileName = myFilename + fileType;
 			}
 
 			System.out.println("Content-Type = " + contentType);
@@ -85,7 +85,7 @@ public class FileDownloadUtility {
 					.println("No file to download. Server replied HTTP code: "
 							+ responseCode);
 			httpConn.disconnect();
-			return "Error "+responseCode;
+			return "Error " + responseCode;
 		}
 
 	}
