@@ -17,14 +17,22 @@ public class FromMongoDB2MySQL {
 	 */
 	private void testDo() {
 		MsgDAOImpl msgDao = new MsgDAOImpl();
+		//1237982
+		int skipNum=1237982;
+		int limitNum=10000;
 		while (true) {
-			List<FullMessage> li = msgDao.getNewRawMsg(10000);
+			//根据条件获取（速度慢）
+//			List<FullMessage> li = msgDao.getNewRawMsg(10000);
+			//通过指针获取
+			List<FullMessage> li = msgDao.getNewRawMsg_skip(skipNum,limitNum);
 			int size = li.size();
 			if (size != 0) {
-				msgDao.saveSQLMsg(li);
+				msgDao.saveSQLMsg_Full(li);
+				skipNum+=size;
 			} else {
 				break;
 			}
+			System.out.println("Transfer Done, SkipNum="+skipNum);
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
@@ -32,7 +40,9 @@ public class FromMongoDB2MySQL {
 				e.printStackTrace();
 			}
 		}
-		System.out.println("Transfer Done");
+//		List<FullMessage> li = msgDao.getNewRawMsg(10000);
+//		msgDao.saveSQLMsg_Full(li);
+		System.out.println("Transfer Done, SkipNum="+skipNum);
 	}
 
 }
